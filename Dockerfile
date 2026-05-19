@@ -18,8 +18,6 @@ WORKDIR /app
 COPY --from=vendor /app/vendor ./vendor
 COPY . .
 
-RUN php bin/compile-container.php || true
-
 ENV SERVER_NAME=":80"
 
 CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]
