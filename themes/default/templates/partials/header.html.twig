@@ -1,0 +1,7 @@
+<header class="blog-hdr">
+  <a class="home" href="{{ urls.home|default('/') }}">{{ website.name|default('InkwellCMS') }}</a>
+  <nav>
+    <a class="plain {{ view == 'home' ? 'current' : '' }}"
+       href="{{ urls.home|default('/') }}">Home</a>
+  </nav>
+</header>

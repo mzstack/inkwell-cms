@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use DI\Container;
 use Spoudazon\InkwellCms\Controller\ErrorController;
+use Spoudazon\InkwellCms\EventSubscriber\ThemeAssetsSubscriber;
 use Spoudazon\InkwellCms\Runtime\AppRuntimeConfig;
 use Symfony\Component\ErrorHandler\ErrorRenderer\HtmlErrorRenderer;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -16,16 +17,36 @@ use Symfony\Component\HttpKernel\HttpKernel;
 use Symfony\Component\Routing\Matcher\UrlMatcher;
 use Symfony\Component\Routing\RequestContext;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
+use Twig\Environment;
+use Twig\Loader\FilesystemLoader;
 use function DI\autowire;
 use function DI\factory;
 use function DI\get;
 
 return [
+    'app.theme' => factory(fn(Container $c) => $c->get('app.website')['theme'] ?? 'default'),
     'app.root' => dirname(__DIR__),
     'app.cache_dir' => factory(fn(Container $c) => $c->get(AppRuntimeConfig::class)->getCacheDir()),
     'app.routes' => factory(fn() => require __DIR__ . '/routes.php'),
+    'app.templates_dir' => DI\string('{app.root}/themes/{app.theme}/templates'),
+    'app.website' => factory(fn() => require __DIR__ . '/website.php'),
 
     RequestContext::class => factory(fn() => new RequestContext()),
+
+    Environment::class => factory(function (Container $c) {
+        $twig = new Environment(
+            new FilesystemLoader($c->get('app.templates_dir')),
+            [
+                'cache' => $c->get('app.cache_dir') . '/twig',
+                'auto_reload' => $c->get(AppRuntimeConfig::class)->isDebug(),
+                'strict_variables' => $c->get(AppRuntimeConfig::class)->isDebug(),
+            ]
+        );
+
+        $twig->addGlobal('website', $c->get('app.website'));
+
+        return $twig;
+    }),
 
     HtmlErrorRenderer::class => factory(fn(Container $c) => new HtmlErrorRenderer(
         debug: $c->get(AppRuntimeConfig::class)->isDebug(),
@@ -54,8 +75,10 @@ return [
         $eventDispatcher = new EventDispatcher();
         $eventDispatcher->addSubscriber($c->get(RouterListener::class));
         $eventDispatcher->addSubscriber($c->get(ErrorListener::class));
+        $eventDispatcher->addSubscriber($c->get(ThemeAssetsSubscriber::class));
         return $eventDispatcher;
     }),
+
 
     EventDispatcherInterface::class => get(EventDispatcher::class),
     ControllerResolverInterface::class => get(ContainerControllerResolver::class),

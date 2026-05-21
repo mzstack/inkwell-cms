@@ -1,0 +1,10 @@
+{#
+  Formatting helpers shared across theme templates.
+  Import with: {% import 'partials/macros.html.twig' as fmt %}
+#}
+
+{# Machine-readable date for the <time datetime="..."> attribute. #}
+{% macro date_iso(date) %}{{ date|date('Y-m-d') }}{% endmacro %}
+
+{# Human-readable date shown to the reader. #}
+{% macro date_readable(date) %}{{ date|date('j.m.Y') }}{% endmacro %}
